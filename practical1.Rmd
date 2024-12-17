@@ -1,0 +1,406 @@
+---
+title: | 
+    |  MT5765 Medical Stats 
+    |  Practical1.
+author: "Ziteng Dong"
+date: "Semester 2 2024"
+output: 
+# for pretty pdfs install BiocStyle and uncomment the next five lines
+  BiocStyle::pdf_document:
+    highlight: tango
+    df_print: tibble
+    fig_caption: true
+    number_sections: true 
+# for pretty html install BiocStyle and uncomment the next five lines
+  #BiocStyle::html_document
+# Alternatively for prettIER html documents install and investigate prettydoc and uncomment the next three lines
+  #  prettydoc::html_pretty:
+  #  theme: cayman
+  #  highlight: github
+# Else uncomment the following  
+  #pdf_document 
+bibliography: prac1.bib
+---
+
+I hereby declare that this is my own work and that I have not reproduced, without acknowledgement, the work of another. 
+
+Ziteng Dong
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(knitr)
+datapath<-"../Data/"
+```
+
+
+# Declaration
+
+This must be your own work. Please make the following declaration at the top of the page: "I hereby declare that this is my own work and that I have not reproduced, without acknowledgement, the work of another" and replace my name as author of the document on line 5 of the Rmd file.
+
+# Administrivia
+
+This is the first assessed practical for MT5765 Medical Statistics in 2024. You are required to complete the practical by adding to this document and then submitting an R markdown document (you can use this document as a starting point if you so desire - just make sure you only add content after the "Tasks" section).  
+
+The R markdown language allows one to combine code, analyses and explanatory text in a seamless document. __Do not neglect the last of these three__.
+
+This practical is worth 10% of the total mark and will be assessed on the execution of the tasks listed below, the judgement shown in approaching the tasks, and the understanding of the topic and justifications evidenced from the written report. As such, you must make a valid attempt at the practical in order to pass the module, on the other hand it should not represent a large investment of time.
+
+When you have completed the practical, you will be able to say that you have performed a real meta-analysis, and should be confident that you can do so with other data sets.  
+
+I will present to you data from a number of papers looking at the use of an antiseptic to treat umbilical cord stumps and the impact on neotatal mortality. One meta-analysis on this topic has had to be retracted due to problems with the analysis, so it is a worthy challenge. 
+
+You must decide on the precise question you are answering, the studies you are going to include, the measure on which to meta-analyse and the analysis to perform. There is no single `right' answer, so you must justify your decisions. 
+
+While you may wish to read the source papers for your own interest, the only data you are allowed to use are those given in this document. 
+,
+The deadline for this project is __Friday February 23rd__.
+
+# Antiseptics, Umbilical cords, and Neonatal death.
+
+
+Neonatal deaths are a major health concern, and in areas with high neonatal mortality rates are mostly driven by bacterial infection. Historically there has been mixed guidance on the use of antiseptics such as chlorhexidine as treatments for the umbilical cord stump, with the background mortality rate and birth setting (e.g. in hospital or not) playing into that guidance.
+
+Your job is to synthesise the following results in an appropriate manner and interpret the overall estimate that you come up with.
+
+
+
+# The Papers
+
+## @Ronchera-Oms1994
+
+@Ronchera-Oms1994, reporting on a study in Spain compared four antiseptic regimes. One of these contained chlorhexidine. The number of bacterial infections stratified by presence of chlorhexidine is given in the following table:
+
+\begin{table}[]
+\begin{tabular}{l|l|l|}
+\cline{2-3}
+                                               & Positive for bacteria & Negative for bacteria \\ \hline
+\multicolumn{1}{|l|}{Containing chlorhexidine} & 4                     & 16                    \\ \hline
+\multicolumn{1}{|l|}{Not}                      & 44                    & 12                    \\ \hline
+\end{tabular}
+\caption{}
+\end{table}
+
+
+## @Arifeen2012
+
+@Arifeen2012, reporting on a study in Bangladesh, considered three treatments which we can view as 1) no antiseptic, 2) single application of chlorhexidine and 3) multiple applications of chlorhexidine.
+
+Their data were 
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                            & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{No antiseptic}         & 10,329                                     & 275                                  \\ \hline
+\multicolumn{1}{|l|}{Single application}    & 9,423                                      & 212                                  \\ \hline
+\multicolumn{1}{|l|}{Multiple applications} & 10,008                                     & 283                                  \\ \hline
+\end{tabular}
+\end{table}
+
+
+## @Sazawal2016
+
+ @Sazawal2016 conducted a trial looking at the use of Chlorhexidine against two different controls (which we will combine) within Pemba, Tanzania. The data can be broken down by sex or by setting (Hospital birth or community birth) or combined 
+
+
+In total:
+
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{No antiseptic} & 18,896                                      & 221                                   \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 18,015                                      & 189                                    \\ \hline
+\end{tabular}
+\end{table}
+
+
+In the community:
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{No antiseptic} & 8,743                                      & 79                                   \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 8,742                                      & 73                                    \\ \hline
+\end{tabular}
+\end{table}
+
+
+In hospital settings:
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{No antiseptic} & 10154                                      & 142                                  \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 9272                                       & 116                                   \\ \hline
+\end{tabular}
+\end{table}
+
+
+Boys:
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{No antiseptic} & 9,589                                      & 123                                   \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 9,201                                      & 107                                    \\ \hline
+\end{tabular}
+\end{table}
+
+
+Girls:
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{No antiseptic} & 9,307                                      & 98                                  \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 8,814                                       & 82                                 \\ \hline  
+\end{tabular}
+\end{table}
+
+
+## @Semrau2016
+
+@Semrau2016 performed a similar study in Zambia. There was an issue with some of the births randomized to  Chlorhexidine not following the protocol. They also saw a lot of deaths on day 0 (77 in the control group, 82 randomized to Chlorhexidine) which they exclude from some analyses.
+ 
+The total numbers are given in this table:
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{No antiseptic} & 19346                                      & 263                                  \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 18510                                      & 282                                  \\ \hline
+\end{tabular}
+\end{table}
+
+
+While an alternative breakdown is this:
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                                  & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{No antiseptic}               & 19266                                      & 186                                  \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine compliant}     & 16645                                      & 141                                  \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine non-compliant} & 1779                                       & 59                                   \\ \hline
+\end{tabular}
+\caption{Data from Sazawal et al. excluding deaths on day 0}
+\end{table}
+
+
+## @Soofi2012
+
+In Pakistan, @Soofi2012 ran a trial with four treatment groups: "Chlorhexidine and Hand-washing", "Chlorhexidine only", "Hand-washing only" and "Control (neither)". 
+
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                                                                              & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine.+  Hand-washing} & 2214                                       & 45                                   \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine  only}           & 2653                                       & 66                                   \\ \hline
+\multicolumn{1}{|l|}{Hand-washing only}             & 2475                                       & 95                                   \\ \hline
+\multicolumn{1}{|l|}{Control}                                                                 & 2399                                       & 81                                   \\ \hline
+\end{tabular}
+\end{table}
+
+## @Mullany2006
+
+@Mullany2006 ran a community-based study in Nepal. They had two non-antiseptic arms to the study in addition to Chlorhexidine.
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 4924                                       & 72                                   \\ \hline
+\multicolumn{1}{|l|}{Soap/Water}    & 5107                                       & 98                                   \\ \hline
+\multicolumn{1}{|l|}{Control}       & 5082                                       & 98                                   \\ \hline
+\end{tabular}
+\caption{Data from Mullany et al.}
+\end{table}
+
+## @Pezzati2003
+
+@Pezzati2003 compared two active treatments (Salicylic acid and Chlorhexidine) in preterm births within hospital settings in Italy. There data are given below. 
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                     & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine}  & 101                                        & 0                                    \\ \hline
+\multicolumn{1}{|l|}{Salicylic acid} & 112                                        & 0                                    \\ \hline
+\end{tabular}
+\caption{Data from Pezzati et al.}
+\end{table}
+
+
+## @Nangia2016
+
+
+Rather than death as an outcome, @Nangia2016 record an outcome of bacterial infection at 48 hours. They also split their results between community and hospital births.
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Infections} \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 63                                         & 12                                   \\ \hline
+\multicolumn{1}{|l|}{Control}       & 122                                        & 111                                  \\ \hline
+\end{tabular}
+\caption{Hospital Data from Nangia et al.}
+\end{table}
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Infections} \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 36                                         & 14                                   \\ \hline
+\multicolumn{1}{|l|}{Control}       & 43                                         & 32                                   \\ \hline
+\end{tabular}
+\caption{Community Data from Nangia et al.}
+\end{table}
+
+## @Draiko2021 
+
+This study allocated treatments to regions rather than individual children. This is sometimes the only practicable way in which to run a trial. The study was in South Sudan, and the 'treatment' was to make Chlorhexidine available with control regions having no antiseptic available.
+
+
+\begin{table}[h!]
+\begin{tabular}{l|r|r|}
+\cline{2-3}
+                                    & \multicolumn{1}{l|}{Total no. of children} & \multicolumn{1}{l|}{Neonatal deaths} \\ \hline
+\multicolumn{1}{|l|}{Chlorhexidine} & 968                                         & 13                                   \\ \hline
+\multicolumn{1}{|l|}{Control}       & 822                                         & 109                                   \\ \hline
+\end{tabular}
+\caption{Data from Draiko et al.}
+\end{table}
+
+# Tasks 
+
+1. Determine the quantity you want to estimate and which of the studies you want to include in the meta-analysis. (20%)
+
+2. Determine the effect and variance of the effect for each study or sub-study in your meta-analysis and then conduct an appropriate meta-analysis. (20%)
+
+3. Present and interpret the meta-analysis. If there is an effect, suggest when it might have been identified. (20%)
+
+4. At each step, be clear on the decisions you are making and the reasons for them. (40%)
+
+# Answers
+
+The effect I am going to analyze is the effect of using chlorhexidine on the neonatal death. I don't have any medical knowledge, but I guess this antiseptics may reduce the probability of bacterial infections and then neonatal deaths as well. Since all studies are cohort study, both relative risk and odds ratio are appropriate to quantify the effect, but relative risk is preferred because it is easier to interpret. Therefore, I expect there would be a significant effect of using chlorhexidine on reducing neonatal deaths, in other words, risk is lower in experimental group or the relative risk(effect size) is lower than 1.
+
+The effect and variance of effect:
+$$Relative~Risk = \frac{A \times (C+D)}{C \times (A+B)}$$
+$$Variance[log(Relative~Risk)] \approx \frac{1}{A} - \frac{1}{A+B} + \frac{1}{C} - \frac{1}{C+D}$$
+
+The general inclusion criteria is that the study should be at least comparable to each other. Details of inclusion are discussed below.
+
+Two studies (Ronchera-Oms et al.(1994), and Nangia et al.(2016)) only reported bacterial infection, rather than the number of neonatal death. Even though neonatal deaths are mostly driven by bacterial infection, I decide to exclude them from my analysis, as they are not consistent with the effect I am going to analyze.
+
+Unlike other studies, the trial conducted by Pezzati et al.(2003) does not have a control group. And this study also does not report any neonatal death which will make no contribution to meta-analysis. Therefore, this one needs to be dropped.
+
+Draiko et al.(2021) allocated treatments by regions which may demonstrate higher variance than other similar studies with individual randomization. Since we will use "inverse variance" method to assign weight to each study, lower weight might be allocated to this study, if its data have higher variance. The most important thing is that it is a different study design compared with others which makes it less comparable with other studies, it would be better to remove it from analysis.
+
+Both the randomization process and the data in the study conducted by Semrau et al (2016) were flawed. And based on the information in this file, I can tell neither how many cases followed the protocol of randomization nor the reason why they excluded the deaths on day 0. So I decide to abandon this study.
+
+After excluding the three studies mentioned above, there are four studies left in my analysis.
+
+In the study conducted by Arifeen et al.(2012), treatments were separated into three groups, no antiseptics, single application of chlorhexidine and multiple applications of chlorhexidine. Different number of times of application of chlorhexidine might be influential on neonatal death, so I decide to only include the data with single application as the objective of my analysis is to compare the neonatal death with and without using chlorhexidine. This decision is conservative, as no information was reported on the number of times of application in other studies provided. And similar decisions are made on the data reported by Soofi et al.(2012) and Mullany et al.(2006). Treatments with Chlorhexidine only are kept to minimize effect from other variables.
+
+For the data reported by Sazawal et al.(2016), I decide to use the combined data, because the settings (Hospital birth or community birth) and gender are not the primary concern of my analysis, but I am not claiming they have no association with neonatal death. I think some methods about within group difference and between groups difference can be applied to address this issue, but I don't have the knowledge to support such an analysis right now.
+
+**Meta-Analysis**
+
+```{r input_data}
+# Create a data frame to store values
+df <- data.frame(Auther = c("Mullany", "Arifeen", "Soofi", "Sazawal"),
+                 Year = c( 2006, 2012, 2012, 2016),
+                 A = c(72, 212, 66, 189),
+                 Ne = c(4924, 9423, 2653, 18015),
+                 C = c(98, 275, 81, 221),
+                 Nc = c(5082, 10329, 2399, 18896))
+
+# Calculate B and C
+df$B <- df$Ne - df$A
+df$D <- df$Nc - df$C
+```
+
+```{r rr&variance}
+# Calculate Relative Risk, variance and weight
+df$rr <- round((df$A * df$Nc)/(df$C * df$Ne), 4)
+df$var <- round(exp((1/df$A - 1/df$Ne + 1/df$C - 1/df$Nc)), 4)
+
+df
+```
+
+Generally, we should believe the effects of chlorhexidine on neonatal deaths are identical to each study. And fixed-effect model should be implemented. (But I will still run both fixed-effect model and random-effects model.)
+
+```{r meta_analysis_m}
+# Conduct Meta-Analysis
+m <- meta::metabin(A, Ne, C, Nc, 
+                   sm="RR", 
+                   method = "I", 
+                   data = df, 
+                   studlab = paste(Auther, Year))
+```
+
+```{r summary_meta_m}
+# Summary of m
+summary(m)
+```
+
+```{r forest_m}
+# Forest plot of m
+meta::forest(m, xlab = "Relative Risk", layout = "JAMA")
+```
+From the summary of Meta-Analysis, we can see the results of fixed-effect and random-effect model are the same, and it suggests that there is a common effect across four studies included, or in other words, there is no heterogeneity between these four studies. This is also proved by the large p-value (0.68) from the test of heterogeneity, which does not allow us to reject the null hypothesis that there is no heterogeneity between studies.
+
+The estimated common effect is 0.84 with a 95% confidence interval without 1 ([0.75, 0.93]), which indicates a reduced risk of neonatal deaths associated with using chlorhexidine.
+
+However, there are only four studies included. A small number of studies may not be able to demonstrate a strong statistical power to detect the true effect, but the good news is the sample size in each group is large.
+
+As we can see from the forest plot, all studies involved have 1 in their confidence interval, which may be the reason why it does stop scholars working on this topic.
+
+
+
+# Additional work
+
+That Sazawal et al.(2016) grouped the data by setting (hospital birth or community birth) gives me an idea about the effect of different settings on neonatal deaths. Therefore, I think it might be interesting to conduct a fixed-effect meta-analysis to see if they have a common effect. But this time, I am going to relax my inclusion criteria and include all studies (except Pezzati et al.(2003)) that specified the settings and ignore their flaws. If this meta-analysis demonstrates a common effect, then it might justify my decision of combining data without distinguishing the settings.
+
+```{r meta_analysis_setting}
+# Create a data frame to store values
+df_setting <- data.frame(Author = c("Sazawal(C)", "Sazawal(H)", "Mullany(C)"),
+                         A = c(73, 116, 72),
+                         Ne = c(8742, 9272, 4924),
+                         C = c(79, 142, 98),
+                         Nc = c(8743, 10154, 5107))
+
+# Conduct fixed-effect Meta-Analysis
+m_setting <- meta::metabin(A, Ne, C, Nc, 
+                   sm="RR", 
+                   method = "I", 
+                   data = df_setting, 
+                   studlab = paste(Author),
+                   comb.random = FALSE)
+```
+
+```{r summary_meta_setting}
+# Summary of m_setting
+summary(m_setting)
+```
+
+```{r forest_setting}
+# Forest plot of m_setting
+meta::forest(m_setting, xlab = "Relative Risk", layout = "JAMA")
+```
+From the results of Meta-Analysis, the p-value (0.63) of test of heterogeneity tells us there is a common effect for all studies. But, there are problems. First, the confidence interval for common effect contains 1, which means there is no significant effect under 95% level of confidence. Second, even though each study has a large sample size, but we only have 3 studies, with which we may not be able to answer anything.
+
+
+
+# References
+
+
