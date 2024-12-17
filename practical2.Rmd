@@ -1,0 +1,519 @@
+---
+title: | 
+    |  MT5765 Medical Stats 
+    |  Practical2.
+author: "Ziteng Dong"
+date: "Semester 2 2024"
+output: 
+# for pretty pdfs install BiocStyle and uncomment the next five lines
+ # BiocStyle::pdf_document:
+ #  highlight: tango
+ #  df_print: tibble
+ #  fig_caption: true
+ #  number_sections: true 
+# for pretty html install BiocStyle and uncomment the next five lines
+  #BiocStyle::html_document
+# Alternatively for prettIER html documents install and investigate prettydoc and uncomment the next three lines
+  #  prettydoc::html_pretty:
+  #  theme: cayman
+  #  highlight: github
+# Else uncomment the following  
+  pdf_document 
+---
+
+I hereby declare that this is my own work and that I have not reproduced, without acknowledgement, the work of another.
+
+Ziteng Dong
+
+
+# Declaration
+
+Please make the following declaration at the top of your work: "I hereby declare that this is my own work and that I have not reproduced, without acknowledgement, the work of another", and ensure that you are identified as the author of your submission.
+
+# Administrivia
+
+This is the second assessed practical for MT5765 Medical Statistics in 2023/4. You are required to complete the practical by adding to this document and then submitting the both the R markdown and the compiled report. 
+
+This practical is worth 15% of the total mark and will be assessed on the execution, presentation and justification of methods encountered on the course. It may be necessary to extend those methods beyond the use cases you have already seen, but not by much, and only a small proportion of the mark will be dependent on this.
+
+The R markdown language allows one to combine code, analyses and explanatory text in a seamless document. Do not neglect the last of these three.
+
+There are two main sections. The first uses a data set we haven't seen before, and the second uses the prostate cancer data that we have looked at for some time, but adds in gene expression data that we have not previously encountered. You will not be penalized if you do not understand/interpret the gene expression data. For the purposes of this practical, just treat them as continuous covariantes. The two sections are equally weighted.
+
+In order to generate a personalized data set, please set the __seedgen__ variable to be either your matriculation number or university username (in either case as a string replacing "abc1" in the following R code).
+
+__Note that since the release of this practical was delayed by concerns about access to the prostate data set, I have pushed back the submission deadline to April 1st.__
+
+
+```{r seed, echo=F}
+## replace abc1 with your username or matriculation number (as a string)
+seedgen<-"220009875"
+## do not edit the following lines of this code chunk
+if(!is.character(seedgen)){stop("seedgen must be a character string.")}
+set.seed(sum(strtoi(charToRaw(seedgen),16L)))
+userows<-c(sample(12,4),sample(13:48,4),sample(49:136,4),sample(137:160,4),sample(161:185,4))
+```
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(prostateCancerCamcap)
+library(knitr)
+library(survminer)
+library(survival)
+datapath<-"../Data/"
+```
+
+```{r dataset1, echo=F}
+## Do not edit the code in this chunk
+CANCER<-tibble(time=c(10,19,25,28,31,38,46,55,66,74,78,80,88,92,122,126,140,149,168,170,174,175,181,184,203,211,222,231,239,266,291,294,295,299,303,306,319,322,325,328,331,334,341,351,364,367,370,389,393,395,399,409,414,415,437,439,459,460,465,466,486,503,541,545,551,560,570,573,577,584,588,594,595,598,615,638,640,676,679,686,695,713,733,741,743,847,851,877,924,980),
+event=c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,0,0,1,0,1,1,0,0,1,1,1,1,0,1,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,1,0,0,1,1,1,1,1,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0),
+stage=c(4,2,3,3,4,4,3,1,3,3,4,4,3,4,1,3,4,3,2,3,3,3,2,4,2,4,1,1,2,4,1,1,3,1,1,2,1,1,3,2,2,4,3,4,1,1,2,1,2,2,4,1,1,3,3,3,2,3,3,3,1,1,2,1,1,1,1,2,4,1,3,1,1,3,1,1,2,1,1,1,2,3,3,1,1,2,3,1,3,1),
+ages=c(66,85,75,66,51,74,53,83,84,83,72,79,42,45,59,57,72,67,63,81,60,69,67,73,76,66,39,54,66,76,65,57,56,70,63,53,45,57,85,73,72,73,59,81,59,50,77,82,61,42,51,47,59,66,56,68,43,54,59,69,81,69,46,61,71,74,74,62,76,62,79,79,58,67,55,59,64,73,64,53,51,75,81,71,50,56,66,55,51,73))
+```
+
+# Cancer data
+
+The dataset CANCER contains data for 90 men (event coded as 1 for death, 0 for censored). There are two covariates: tumour stage, and age. In the following analyses we are interested in estimating the differences in survival between different tumour stages. Age should be accounted for as you see fit; You may use it as it is, transform it, convert it to a factor or ignore it.
+
+
+
+1. Present the survival data in the most informative figure you can. (2)
+
+**Since we are interested in the difference in survival between tumour stages, it is a natural choice to fit a survival model with data divided into different groups based on tumour stage. And we specify `conf.type=log` for a stable and well-behaved confidence interval.**
+
+```{r cancer_1}
+# Fit survival model with data divided by stgae
+fit_cancer <- survfit(Surv(time, event) ~ stage,
+                      data = CANCER, 
+                      conf.type="log")           
+
+# Draw a K-M survival plot
+ggsurvplot(fit_cancer,
+           data = CANCER, 
+           risk.table = TRUE,       
+           surv.median.line = "hv", 
+           tables.height = 0.32,
+           conf.int = TRUE)
+```
+
+2. Provide confidence intervals for the median survival associated with tumour stage 4 using what we referred to in class as 'The Delta method'. (2)
+
+```{r cancer_2_1}
+# Create survival fit object with data at stage 4
+fit_cancer_S4 <- survfit(Surv(time, event) ~ 1, 
+                      data = subset(CANCER, stage == 4), 
+                      conf.type="log")
+```
+
+
+```{r cancer_2_2}
+# Gradient of S(t) = 0.5 at stage 4
+
+sur_45 <- max(fit_cancer_S4$surv[fit_cancer_S4$surv <= 0.45]) # largest S(t) before 0.45 
+sur_55 <- min(fit_cancer_S4$surv[fit_cancer_S4$surv >= 0.55]) # smallest S(t) after 0.55
+
+time_45 <- min(fit_cancer_S4$time[fit_cancer_S4$surv == sur_45]) # time when S(t) = 0.45
+time_55 <- min(fit_cancer_S4$time[fit_cancer_S4$surv == sur_55]) # time when S(t) = 0.55
+
+# Calculate gradient
+gradient <- (sur_55 - sur_45) / (time_55 - time_45)
+
+gradient
+```
+
+```{r cancer_2_3}
+# Variance of log(S(t))
+
+# Find the median time; first time where S(t) <= 0.5
+time_median <- min(fit_cancer_S4$time[fit_cancer_S4$surv <= 0.5]) 
+
+# Store index of median time
+time_index <- which(fit_cancer_S4$time == time_median) 
+
+# Extract the variance of log(S(t))
+log_sur_var <- fit_cancer_S4$std.err[time_index] ** 2 
+
+# Calculate variance of S(t)
+sur_var <- (fit_cancer_S4$surv[time_index] ** 2) * log_sur_var
+
+sur_var
+```
+
+```{r cancer_2_4}
+# Confidence interval for median survival
+
+# Calculate standard error of median survival
+time_median_var <- sur_var / (gradient ** 2)
+time_median_se <- sqrt(time_median_var)
+
+c(time_median, time_median_se)
+
+# Calculate confidence interval
+time_median + c(-1.96, 1.96) * time_median_se
+```
+
+**The confidence interval for median survival of stage 4 is [-28.67, 308.67].**
+
+**It might seem surprising to have a negative lower value at first glance, but when looking back to the number of patients at risk around median survival, which is lower than 10 , it is reasonable to expect a large variance and a "wide" confidence interval. And as Delta method returns us an asymptotic result, it needs a large sample size to have an adequate performance.**
+
+**However, a negative value may not be meaningful in our case as patients must be alive when involved in the study at the beginning. Therefore, if we decide to use this result, we need to set the lower value at 0 at least. Or we can consider lower our confidence from 95% to 90% to have a positive interval, but it might not be a good choice. **
+
+```{r cancer_2_5}
+ggsurvplot(fit_cancer_S4, 
+           data = CANCER, 
+           risk.table = TRUE, 
+           surv.median.line = "hv",
+           tables.height = 0.3)
+```
+
+
+3. Perform (a) non-parametric test(s) for differences in survival between tumour stages. (2)
+
+```{r cancer_3_1}
+diffobject1 <- survdiff(Surv(time, event) ~ stage, data = CANCER)
+diffobject1
+```
+
+```{r cancer_3_2}
+1-pchisq(14.93, 3)
+1-pchisq(19.4, 3)
+```
+
+**By leveraging the `survdiff` function, we can easily have both standard Chi-square test and Mantel-Haenszel test for identity of survival distribution of different groups. Both methods can be used for the case with more than 3 groups, and their null hypotheses are that survival between stages are the same.**
+
+**From the Chi-square tests results, with small p-values, we can be sure that there are differences in survival between tumour stages.**
+
+
+
+**Since we have age profile for patients and suspect that patients at different age may have different survival curve within a stage, it is reasonable to look at the distribution of stage at different age.**
+
+```{r cancer_3_3}
+# Minimum age
+min(CANCER$ages)
+# Maximum age
+max(CANCER$ages)
+# Age range
+max(CANCER$ages) - min(CANCER$ages)
+```
+
+**In order to make it practical, we decide to separate ages into three groups for that there are not many patients and too many groups are not beneficial on detecting the data imbalance. If we divide the age range, which spans from 39 to 85, into three equal parts, each age group covers approximately 15 years.**
+
+```{r cancer_3_4}
+# Change age into categorical variable
+CANCER$cat_ages <- cut(CANCER$ages,                           # targeted column
+                       breaks = c(39, 55, 70, 85),            # set breaks 
+                       labels = c("39-55", "56-70", "71-85"), # set labels for intervals
+                       include.lowest = TRUE)                 # include lower value in interval
+
+# Cross-tabulation of age and stage
+
+# Convert table into data frame
+age_stage <- as.matrix.data.frame(table(CANCER$stage, CANCER$cat_ages))
+
+# Set names for rows and columns
+rownames(age_stage) <- c("stage 1", "stage 2", "stage 3", "stage 4")
+colnames(age_stage) <- c("39-55", "56-70", "71-85")
+
+# Compute total number of patients
+age_stage <- cbind(age_stage, total = rowSums(age_stage))
+age_stage <- rbind(age_stage, total = colSums(age_stage))
+
+age_stage
+```
+**Based the separation method mentioned above, it doesn't seem to have data imbalance problem in these data. But we will still use `survdiff` function as before to help test the differences in survivals, and stratified by ages.**
+
+```{r cancer_3_5}
+diffobject2 <- survdiff(Surv(time, event) ~ stage + strata(cat_ages), data = CANCER)
+diffobject2
+```
+
+
+
+4. Use a bootstrapping approach to estimate the difference in survival between tumour stage 1 and tumour stage 4. (2)
+
+```{r cancer_4_1}
+# Initializing bootstrap
+numrep <- 500 # set number of bootstrapped samples
+bootmedian1 <- rep(NA, 500) # results for stage 1
+bootmedian4 <- rep(NA, 500) # results for stage 4
+
+set.seed(1)
+# Loop across all samples (Stage 1)
+for (i in seq(numrep)){
+  
+  # Re-sample with replacement
+  sampling <- sample(99, 99, replace = TRUE)
+  
+  # Fit survival model
+  fit1 <- survfit(Surv(time[sampling], event[sampling]) ~ 1, 
+                 data = subset(CANCER, stage == 1))
+  
+  # Store results
+  bootmedian1[i] <- summary(fit1)$table[7]
+}
+
+set.seed(4)
+# Loop across all samples (Stage 4)
+for (i in seq(numrep)){
+  
+  # Re-sample with replacement
+  sampling <- sample(99, 99, replace = TRUE)
+  
+  # Fit survival model
+  fit4 <- survfit(Surv(time[sampling], event[sampling]) ~ 1, 
+                 data = subset(CANCER, stage == 4))
+  
+  # Store results
+  bootmedian4[i] <- summary(fit4)$table[7]
+}
+```
+
+```{r cancer_4_2}
+# Check missing values in bootstrap results
+table(is.na(bootmedian1))
+table(is.na(bootmedian4))
+```
+
+```{r cancer_4_3}
+# 2.5% and 97.5% quantile of bootstrap results
+quantile(bootmedian1, c(0.025, 0.975), na.rm = TRUE)
+quantile(bootmedian4, c(0.025, 0.975), na.rm = TRUE)
+```
+
+**We can see from the 95% confidence intervals that there is no overlap at all, which means there is difference in survival median between stage 1 and stage 4. But we cannot be confident with this result as there are too many missing values in the bootstrap result for stage 1, and we simply dropped all of them. The loss of these values may have significant impact on the quantile of the bootstrap result, which may alter our conclusion.**
+
+
+
+5. Decide whether you think an exponential model would be appropriate for modelling these data. (2)
+
+**Under an exponential model, we assume the hazard rate is constant. To assess the validation of this assessment, we can plot $log(-log(S(t)))-log(t)$ (which is equal to log($\lambda$)) in sequence. And if the hazard rate is constant, then we would expect the data points are nearly in a horizontal line.**
+
+**Based on the scatter plot below, we can see the log($\lambda$) has an increasing trend across index, which indicates the assumption of constant hazard ratio is not valid. Therefore, we can conclude that an exponential model might not be appropriate for modelling these data as a whole. **
+
+```{r cancer_5_1}
+# Create a data frame to store values
+df <- data.frame(surv = fit_cancer$surv, 
+                 time = fit_cancer$time, 
+                 index = 1: 90)
+
+# Plot log(-log(S(t)))-log(t)
+ggplot(df) + ylim(-8, -4) + theme_bw() +
+  geom_point(aes(index, log(-log(surv))-log(time)))
+```
+
+**However, one may think relaxing the assumption on constant hazard by assuming constant ratio for each stage. Therefore, I decide to draw same plot above but one for each stage.**
+
+```{r cancer_5_2}
+# Add stage
+df$stage <- CANCER$stage
+
+# Plot log(-log(S(t)))-log(t) for each stage
+ggplot(df) + theme_bw() + facet_wrap(~ stage) +
+  geom_point(aes(index, log(-log(surv))-log(time)))
+```
+
+**The data points in the plots still don't present us any sign of horizontal distribution. And we can conclude that even at each stage, the assumption of constant hazard is not valid, and an exponential model is not appropriate for these data.**
+
+
+In each case explain/justify your decisions.
+
+
+# Prostate data
+
+
+```{r camcapdata, echo=FALSE, warning=FALSE}
+## Do not edit the code in this chunk
+
+### These lines retreive the clinical information, and create the Time and Event variables. We also remove lines for which we don't have Time and Event variables.
+### We remove the variables that aren't needed for the exercise and reformat the remainder so that the 
+pd_camcap <- tbl_df(pData(camcap))
+pd_camcap <- mutate(pd_camcap, Time = as.numeric(as.character(FollowUpTime)), 
+                    Event = ifelse(BCR=='Y',1,0))
+pd_camcap <- pd_camcap %>% filter(!is.na(Time) & !is.na(Event))
+pd_camcap$PSA<-as.numeric(as.character(pd_camcap$PSA))
+pd_camcap$ERG<-as.character(pd_camcap$ERG)
+pd_camcap$ERG[which(pd_camcap$ERG=="N")]<-"0"
+pd_camcap$ERG[which(sapply(pd_camcap$ERG,substr,1,1)=="E")]<-"1"
+pd_camcap$ERG[which(sapply(pd_camcap$ERG,substr,1,1)=="2")]<-"1"
+pd_camcap$ERG<-as.numeric(pd_camcap$ERG)
+pd_camcap$Age<-as.numeric(as.character(pd_camcap$Age))
+pd_camcap<-pd_camcap[,c(1,10:12,16:17)]
+
+### The following lines will extract 20 rows of the exprs camcap object specific to your user ID. In this way you have a manageable number of covariates.
+
+e_camcap<-exprs(camcap)
+e_camcap <- e_camcap[,(!is.na(pd_camcap$Time) & !is.na(pd_camcap$Event))]
+generows<-sort(c(7249,13176,24980,27335,30469,36563,38503,38896,43580,43792,45218,46723,2835,5496,6119,6209,7855,9160,10198,11465,13621,13976,14782,19793,20026,20860,21526,22102,22477,23474,25523,25613,28557,29247,29892,31840,32955,35103,35196,35523,36061,36132,37319,39989,40012,42192,44991,47310,2062,2357,2408,2983,3500,3971,4622,4999,5700,5721,6022,6060,6136,6952,8224,8806,9104,9310,9338,10526,10670,11118,11788,11844,12414,12877,13073,13406,14526,14639,14763,15339,15827,16585,16809,17774,17864,18272,18960,19194,19209,19443,19807,19878,20373,20443,21540,21861,21991,22309,22334,22810,24434,24497,25402,26397,26987,27550,28361,28492,29537,30486,30505,30757,31510,31589,31665,31896,32235,32566,33937,34824,35195,37025,38039,38643,39272,40268,40890,40922,42066,42878,43146,44327,45674,46259,46502,46546,4119,8621,9312,9453,9618,10224,10992,15228,15401,16930,18963,20573,25737,27088,27798,28061,30897,32648,33486,33545,33709,38251,38726,44829,36980,11232,10039,37328,34848,28678,3409,10622,28495,7382,46427,14045,45852,8967,35070,8473,21956,17204,34099,40660,40651,40569,41358,33741,39329)[userows])
+e_camcap<-e_camcap[generows,]
+
+e_camcap<-e_camcap[,match(pd_camcap$geo_accession,colnames(e_camcap))]
+```
+
+In this section, we look again at the prostate data that have featured in the course. There is a code chunk in the Rmd file that will generate two R objects for you: pd_camcap and e_camcap. Note that the e_camcap object is generated specifically for you. It is important that you replace the "abc1" string in the first code chunk of the Rmd file, and run all of the code chunks in order to generate the correct .  
+
+As well as survival time and 'event' in the pd_camcap data object, there are three covariates (ERG, Age and PSA). Additionally there are 20 continuous covariates in the form of gene expression data in the e_camcap data object. 
+
+Here you will build the best model for survival in terms of those 23 covariates (or transformations of those covariates) that you can. The final model must be a semi-parametric Cox proportional hazards model, but you can eliminate covariates from consideration by any means you choose.
+
+As ever explain, and justify, any decisions. In particular, it is important that you show how the model evolves from your first attempt. 
+
+Tasks:
+
+1. Find the best Cox proportional Hazards model for survival in terms of the 23 covariates that you can. (6)
+
+**The first step is combine two data sets by "geo_accession" to facilitate model fitting.**
+
+```{r prostate_1_1}
+# Convert e_camcap into data frame
+df_e_camcap <- as.data.frame(t(e_camcap))
+
+# Compute mean of each columns
+means <- apply(df_e_camcap, 2, mean, na.rm = TRUE)
+
+# Impute missing value with mean
+for (i in colnames(df_e_camcap)){                         # for loop begins
+  df_e_camcap[ , i][is.na(df_e_camcap[ , i])] <- means[i]
+}                                                         # for loop ends
+
+# Create new column with values same with rownames
+df_e_camcap$geo_accession <- rownames(df_e_camcap)
+
+# Merge two data sets
+camcap <- inner_join(df_e_camcap, pd_camcap, by = "geo_accession")
+
+camcap <- na.omit(camcap)
+```
+
+**We have spotted several missing values in e_camcap. Since values in this data set are continuous, we can use the mean of each column to fill these missing values. But we decide to drop rows with missing value in pd_camcap after combined with e_camcap as there are only six missing values and five of them are binary variables, which are not suitable for imputation. **
+
+**We fit our first model with all available covariates, and there are only 7 of them are significant. In fact we tried to involve interactions in the model, because we are interested in the interactions between gene expressions and other three covariates. However, we got warning for running out of iteration if we do so. We also tried to increase the maximum number of iterations, but it returned us infinite estimated coefficients. We think the reasons why we are in this situation might be that 1)we may have collinearity problem; 2)data may correlated with time; 3)we may not have enough observations. Now we can only fit a model without interactions.**
+
+```{r prostate_1_2}
+# Fit a Cox proportional harzard model
+coxfit1 <- coxph(Surv(Time, Event) ~ . -geo_accession, data = camcap, ties = "efron")
+
+summary(coxfit1)
+```
+
+**We run the VIF of covariates, and results are below. Many covariates have VIF larger than 5 and even 10, which indicates that we are facing collinearity problem. The consequence is that the associated p-values of collinear terms may be too large.**
+
+```{r prostate_1_3, warning=FALSE}
+# VIF
+car::vif(coxfit1)
+```
+
+**To address collinearity problem, the simplest way is dropping highly collinear terms. But we will not drop ERG as it is both binary variable and what we interested in.**
+
+```{r prostate_1_4}
+# Remove collinear terms from model
+coxfit2 <- update(coxfit1, .~.-ILMN_1683604 
+                              -ILMN_1746515 
+                              -ILMN_3211132 
+                              -ILMN_3266606 
+                              -ILMN_3290199 
+                              -ILMN_3304130)
+```
+
+```{r prostate_1_5, warning=FALSE}
+# VIF
+car::vif(coxfit2)
+```
+
+**After excluding highly collinearity terms, we don't have the collinearity issues any more. We tried to fit a model with interactions. Unfortunately, we were given warning again. (# we decide no to show this model, as we did not develop models from it.)**
+
+**We think it might be a good choice to select some gene expressions with significant effect first, and reduce the dimension of data. But we cannot remove variables just based on the significance of the summary output as it is measured separately. Since we don't have interaction terms yet, we decide to use Type II ANOVA to select variables.**
+
+```{r prostate_1_6}
+# Type II ANOVA
+car::Anova(coxfit2)
+```
+
+**Now there are only three gene having significant effect. Because we are interested in the interactions between gene expressions and other three covariates, ERG, AGE and PSA are not removed from model.**
+
+```{r prostate_1_7}
+# Fit model with interactions
+coxfit3 <- coxph(Surv(Time, Event) ~ (ILMN_1781983 + ILMN_1907467 +
+                                      ILMN_3242603) * (ERG + Age + PSA), 
+                 data = camcap, ties = "efron")
+```
+
+**Since we are estimating parameters based on partial likelihood, which is similar to likelihood, we can choose AIC as the criteria for model selection.**
+
+```{r prostate_1_8}
+# Stepwise AIC
+MASS::stepAIC(coxfit3)
+```
+
+
+2. Illustrate your final model. (2)
+
+```{r prostate_2_1}
+# Final model
+final_coxfit <- coxph(Surv(Time, Event) ~ ILMN_1781983 + ILMN_1907467 + 
+                                          ILMN_3242603 + ERG + 
+                                          ILMN_1781983:ERG, 
+                      data = camcap, ties = "efron")
+
+summary(final_coxfit)
+```
+
+**Based on the results from stepwise AIC, we have our final model, which has the lowest AIC, with ILMN_1781983, ILMN_1907467, ILMN_3242603, ERG, and interaction between ILMN_1781983 and ERG. The estimated coefficients are 2.99, -6.12, -2.26, 43.7 and -4.75 respectively, and all of them have significant effect on the hazard ratio.**
+
+**All gene expressions are continuous variables, so the exp(coef) reported in the output is the hazard ratio associated with one unit increase in the gene expression. For example, ILMN_1781983 has exp(coef)=1.99, which means, all else being equal, one unit increase in expression of this gene, the hazard ratio will increase by 1.99. However, we find that the exp(coef) for ERG is extremely high, which means whether the patients have ERG would have great effect on their hazard ratio.**
+
+3. Assess whether your final model is suitable. (2)
+
+**We can obtain tests for proportional hazard assumption form `cox.zph`, which tests the proportional hazards assumption for a Cox regression model fit.**
+
+```{r prostate_3_1}
+# Test for porportional hazard assumption
+cox.zph(final_coxfit)
+```
+
+**From the tests from "cox.zph", we find that all p-values are larger than 0.05 which means we cannot reject the null hypothesis that the proportional hazards assumption is valid.**
+
+```{r prostate_3_2}
+# Checking proportional hazards
+par(mfrow = c(2, 3))
+
+plot(cox.zph(final_coxfit))
+
+par(mfrow = c(1, 1))
+```
+
+**However, we find Beta(t)s for ILMN_1781983 and ILMN_1907467 are not independent of time when plotted against time. But if the proportional hazard assumption holds, then the true Beta(t) should be a horizontal line. It is very interesting to have a contradicted results. Or maybe we should not rely on our visual.**
+
+```{r prostate_3_3}
+# Influential observations
+dfbeta <- residuals(final_coxfit, type = "dfbeta")
+
+Mres <- residuals(final_coxfit, type = "martingale")
+
+p1 <- ggplot() + geom_point(aes(x = Mres, y = dfbeta[, 1])) +
+    xlab("Martingale Residuals") + ylab("ILMN_1781983") + theme_bw()
+p2 <- ggplot() + geom_point(aes(x = Mres, y = dfbeta[, 2])) +
+    xlab("Martingale Residuals") + ylab("ILMN_1907467") + theme_bw()
+p3 <- ggplot() + geom_point(aes(x = Mres, y = dfbeta[, 3])) +
+    xlab("Martingale Residuals") + ylab("ILMN_3242603") + theme_bw()
+p4 <- ggplot() + geom_point(aes(x = Mres, y = dfbeta[, 4])) +
+    xlab("Martingale Residuals") + ylab("ERG") + theme_bw()
+p5 <- ggplot() + geom_point(aes(x = Mres, y = dfbeta[, 5])) +
+    xlab("Martingale Residuals") + ylab("ILMN_1781983:ERG") + theme_bw()
+gridExtra::grid.arrange(p1, p2, p3, p4, p5, ncol = 2)
+```
+
+**Based on the distribution of martingale residuals, we don't see any observations cause great concern about overly-influential problem.**
+
+**Overall, our model is suitable for these data for that the assumption on proportional hazards is valid and there is no overly influential observation. But we have to point out that the extreme value for estimated coefficient of ERG might be a problem and we did not test if these data are correlated with time.**
+
+# sessionInfo
+
+Including this as good practice and to aid diagnostics when things go wrong.
+
+```{r sessioninfo}
+# Make sure the next line is uncommented prior to submission
+sessionInfo()
+```
